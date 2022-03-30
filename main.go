@@ -73,9 +73,9 @@ func main() {
 		printLanguageList(languageList)
 		printRepositoriesByLanguage(languageList, langRepoMap)
 	} else {
-		fmt.Printf("## Repositories\n\n")
+		builder.WriteString("## Repositories\n\n")
 		for _, r := range repositories {
-			fmt.Printf("- [%s](%s)\n", r.GetFullName(), r.GetHTMLURL())
+			builder.WriteString(fmt.Sprintf("- [%s](%s)\n", r.GetFullName(), r.GetHTMLURL()))
 		}
 	}
 
@@ -93,17 +93,40 @@ func main() {
 				fmt.Printf("Error on creating repository (%s): %v\n", repository, err)
 				os.Exit(2)
 			}
+			createFile(ctx, client)
 		}
-		_, _, err = client.Repositories.CreateFile(ctx, username, repository, "README.md", &github.RepositoryContentFileOptions{
-			Message: &message,
-			Content: []byte(builder.String()),
-		})
-		if err != nil {
-			return
-		}
+		updateFile(ctx, client)
 	}
 	if repository == "" {
 		fmt.Println(builder.String())
+	}
+}
+
+func createFile(ctx context.Context, client *github.Client) {
+	_, _, err := client.Repositories.CreateFile(ctx, username, repository, "README.md", &github.RepositoryContentFileOptions{
+		Message: &message,
+		Content: []byte(builder.String()),
+	})
+	if err != nil {
+		fmt.Println("error on creating file:", err)
+		os.Exit(3)
+	}
+}
+
+func updateFile(ctx context.Context, client *github.Client) {
+	readmeFile, _, _, err := client.Repositories.GetContents(ctx, username, repository, "README.md", &github.RepositoryContentGetOptions{})
+	if err != nil {
+		createFile(ctx, client)
+		return
+	}
+	_, _, err = client.Repositories.UpdateFile(ctx, username, repository, "README.md", &github.RepositoryContentFileOptions{
+		Message: &message,
+		Content: []byte(builder.String()),
+		SHA:     readmeFile.SHA,
+	})
+	if err != nil {
+		fmt.Println("error on updating file:", err)
+		os.Exit(3)
 	}
 }
 
