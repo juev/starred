@@ -40,7 +40,7 @@ $ starred --username yourname --repository awesome-stars --sort
 ```
 
 - [juev/awesome-stars](https://github.com/juev/awesome-stars)
-- [update awesome-stars every day by GitHub Action](https://github.com/juev/awesome-stars/blob/master/.github/workflows/main.yml) the example with GitHub Action
+- [update awesome-stars every day by GitHub Action](https://github.com/juev/awesome-stars/blob/main/.github/workflows/main.yml) the example with GitHub Action
 
 ## FAQ
 

@@ -16,7 +16,7 @@ import (
 
 const (
 	PerPage int    = 100
-	Version string = "0.1"
+	Version string = "0.0.1"
 )
 
 var (
@@ -26,7 +26,7 @@ var (
 	message    string
 	sortCmd    bool
 	help       bool
-	version    bool
+	versionCmd bool
 	builder    strings.Builder
 )
 
@@ -37,7 +37,7 @@ func init() {
 	flag.StringVarP(&message, "message", "m", "update stars", "commit message")
 	flag.BoolVarP(&sortCmd, "sort", "s", false, "sort by language")
 	flag.BoolVarP(&help, "help", "h", false, "show this message and exit")
-	flag.BoolVarP(&version, "version", "v", false, "show the version and exit")
+	flag.BoolVarP(&versionCmd, "version", "v", false, "show the version and exit")
 
 	flag.Parse()
 
@@ -45,7 +45,7 @@ func init() {
 		token = os.Getenv("GITHUB_TOKEN")
 	}
 
-	if version {
+	if versionCmd {
 		fmt.Printf("starred version: %s\n", Version)
 		os.Exit(0)
 	}
