@@ -10,10 +10,12 @@ Go 1.1+ is required. [Golang Getting Started](http://golang.org/doc/install)
 $ go install github.com/juev/starred@latest
 ```
 
+or download binary file from [Release page](https://github.com/juev/starred/releases/latest)
+
 ## Usage
 
 ```bash
-$ starred
+$ starred --help
 
 Usage: starred [OPTIONS]
 
@@ -24,11 +26,13 @@ Usage: starred [OPTIONS]
     starred --username juev --sort > README.md
 
 Options:
+  -h, --help                show this message and exit
   -m, --message string      commit message (default "update stars")
   -r, --repository string   repository name
-      --sort                sort by language
+  -s, --sort                sort by language
   -t, --token string        GitHub token
   -u, --username string     GitHub username (required)
+  -v, --version             show the version and exit
 ```
 
 ## Demo
