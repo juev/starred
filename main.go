@@ -48,7 +48,11 @@ func init() {
 	}
 
 	if versionCmd {
-		fmt.Printf("starred version: %s (%s) / builded %s\n", version, commit[:6], date)
+		versionStr := "starred version: dev\n"
+		if version != "" {
+			versionStr = fmt.Sprintf("starred version: %s (%s) / builded %s\n", version, commit[:6], date)
+		}
+		fmt.Printf(versionStr)
 		os.Exit(0)
 	}
 
