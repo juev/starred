@@ -28,6 +28,8 @@ var (
 	versionCmd bool
 	builder    strings.Builder
 	version    string
+	commit     string
+	date       string
 )
 
 func init() {
@@ -46,7 +48,7 @@ func init() {
 	}
 
 	if versionCmd {
-		fmt.Printf("starred version: %s\n", version)
+		fmt.Printf("starred version: %s (%s) / builded %s\n", version, commit[:6], date)
 		os.Exit(0)
 	}
 
