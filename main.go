@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -15,8 +15,7 @@ import (
 )
 
 const (
-	PerPage int    = 100
-	Version string = "0.0.1"
+	PerPage int = 100
 )
 
 var (
@@ -28,6 +27,7 @@ var (
 	help       bool
 	versionCmd bool
 	builder    strings.Builder
+	version    string
 )
 
 func init() {
@@ -46,7 +46,7 @@ func init() {
 	}
 
 	if versionCmd {
-		fmt.Printf("starred version: %s\n", Version)
+		fmt.Printf("starred version: %s\n", version)
 		os.Exit(0)
 	}
 
@@ -54,20 +54,27 @@ func init() {
 		usage()
 		os.Exit(0)
 	}
+	if repository != "" && token == "" {
+		fmt.Println("Error: repository need set token")
+		os.Exit(1)
+	}
 }
 
 func main() {
 	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
-	)
-	tc := oauth2.NewClient(ctx, ts)
 
+	var tc *http.Client
+	if token != "" {
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: token},
+		)
+		tc = oauth2.NewClient(ctx, ts)
+	}
 	client := github.NewClient(tc)
 
 	repositories := fetchGitHubData(ctx, client)
-	printHeader()
 
+	printHeader()
 	if sortCmd {
 		languageList, langRepoMap := sortRepositories(repositories)
 		printLanguageList(languageList)
@@ -78,56 +85,24 @@ func main() {
 			builder.WriteString(fmt.Sprintf("- [%s](%s)\n", r.GetFullName(), r.GetHTMLURL()))
 		}
 	}
-
 	printFooter(username)
 
-	if repository != "" && token == "" {
-		fmt.Println("Error: create repository need set --token")
-		os.Exit(1)
-	}
-	if repository != "" && token != "" {
-		_, _, err := client.Repositories.Get(ctx, username, repository)
-		if err != nil {
-			_, _, err := client.Repositories.Create(ctx, "", &github.Repository{Name: github.String(repository)})
-			if err != nil {
-				fmt.Printf("Error on creating repository (%s): %v\n", repository, err)
-				os.Exit(2)
-			}
-			createFile(ctx, client)
-		}
-		updateFile(ctx, client)
-	}
 	if repository == "" {
 		fmt.Println(builder.String())
+		return
 	}
-}
 
-func createFile(ctx context.Context, client *github.Client) {
-	_, _, err := client.Repositories.CreateFile(ctx, username, repository, "README.md", &github.RepositoryContentFileOptions{
-		Message: &message,
-		Content: []byte(builder.String()),
-	})
+	_, _, err := client.Repositories.Get(ctx, username, repository)
 	if err != nil {
-		fmt.Println("error on creating file:", err)
-		os.Exit(3)
-	}
-}
-
-func updateFile(ctx context.Context, client *github.Client) {
-	readmeFile, _, _, err := client.Repositories.GetContents(ctx, username, repository, "README.md", &github.RepositoryContentGetOptions{})
-	if err != nil {
+		_, _, err := client.Repositories.Create(ctx, "", &github.Repository{Name: github.String(repository)})
+		if err != nil {
+			fmt.Printf("Error: cannot create repository (%s): %v\n", repository, err)
+			os.Exit(2)
+		}
 		createFile(ctx, client)
 		return
 	}
-	_, _, err = client.Repositories.UpdateFile(ctx, username, repository, "README.md", &github.RepositoryContentFileOptions{
-		Message: &message,
-		Content: []byte(builder.String()),
-		SHA:     readmeFile.SHA,
-	})
-	if err != nil {
-		fmt.Println("error on updating file:", err)
-		os.Exit(3)
-	}
+	updateFile(ctx, client)
 }
 
 func usage() {
@@ -141,55 +116,6 @@ func usage() {
 	fmt.Println()
 	fmt.Println("Options:")
 	flag.PrintDefaults()
-}
-
-func fetchGitHubData(ctx context.Context, client *github.Client) []github.Repository {
-	opt := &github.ActivityListStarredOptions{}
-	opt.ListOptions.PerPage = PerPage
-
-	var result []github.Repository
-	pageIdx := 1
-	for {
-		opt.ListOptions.Page = pageIdx
-
-		reps, _, err := client.Activity.ListStarred(ctx, "", opt)
-		if err != nil {
-			log.Fatalln("error = ", err)
-		}
-		for _, r := range reps {
-			result = append(result, *r.Repository)
-		}
-
-		if len(reps) != PerPage {
-			break
-		}
-
-		pageIdx++
-	}
-	return result
-}
-
-func sortRepositories(repositories []github.Repository) (languageList []string, langRepoMap map[string][]github.Repository) {
-	if len(repositories) == 0 {
-		return nil, nil
-	}
-
-	langRepoMap = make(map[string][]github.Repository)
-	for _, r := range repositories {
-		lang := "Others"
-		if r.Language != nil {
-			lang = *r.Language
-		}
-
-		langList, ok := langRepoMap[lang]
-		if !ok {
-			langList = []github.Repository{}
-			languageList = append(languageList, lang)
-		}
-		langList = append(langList, r)
-		langRepoMap[lang] = langList
-	}
-	return languageList, langRepoMap
 }
 
 func printHeader() {
