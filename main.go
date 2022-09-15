@@ -15,6 +15,7 @@ import (
 )
 
 const (
+	// PerPage is how many links we get by ine shoot
 	PerPage int = 100
 )
 
