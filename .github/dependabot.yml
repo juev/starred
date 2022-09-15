@@ -10,7 +10,7 @@ updates:
     schedule:
       interval: "weekly"
     commit-message:
-      prefix: "dump"
+      prefix: "bump"
       include: "scope"
     # Add reviewers
     reviewers:
