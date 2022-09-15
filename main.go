@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -11,12 +10,6 @@ import (
 	flag "github.com/spf13/pflag"
 
 	"github.com/google/go-github/github"
-	"golang.org/x/oauth2"
-)
-
-const (
-	// PerPage is how many links we get by ine shoot
-	PerPage int = 100
 )
 
 var (
@@ -70,20 +63,12 @@ func init() {
 func main() {
 	ctx := context.Background()
 
-	var tc *http.Client
-	if token != "" {
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: token},
-		)
-		tc = oauth2.NewClient(ctx, ts)
-	}
-	client := github.NewClient(tc)
+	client := NewGithub(ctx, token)
 
-	repositories := fetchGitHubData(ctx, client)
+	languageList, langRepoMap, repositories := client.GetRepositories(ctx)
 
 	printHeader()
 	if sortCmd {
-		languageList, langRepoMap := sortRepositories(repositories)
 		printLanguageList(languageList)
 		printRepositoriesByLanguage(languageList, langRepoMap)
 	} else {
@@ -98,30 +83,20 @@ func main() {
 		fmt.Println(builder.String())
 		return
 	}
-
-	_, _, err := client.Repositories.Get(ctx, username, repository)
-	if err != nil {
-		_, _, err := client.Repositories.Create(ctx, "", &github.Repository{Name: github.String(repository)})
-		if err != nil {
-			fmt.Printf("Error: cannot create repository (%s): %v\n", repository, err)
-			os.Exit(2)
-		}
-		createFile(ctx, client)
-		return
-	}
-	updateFile(ctx, client)
+	client.UpdateReadmeFile(ctx)
 }
 
 func usage() {
-	fmt.Println("Usage: starred [OPTIONS]")
-	fmt.Println()
-	fmt.Println("  GitHub starred")
-	fmt.Println("  creating your own Awesome List used GitHub stars!")
-	fmt.Println()
-	fmt.Println("  example:")
-	fmt.Println("    starred --username juev --sort > README.md")
-	fmt.Println()
-	fmt.Println("Options:")
+	fmt.Println(`
+Usage: starred [OPTIONS]
+
+  GitHub starred
+  creating your own Awesome List used GitHub stars!
+
+  example:
+    starred --username juev --sort > README.md
+
+Options:`)
 	flag.PrintDefaults()
 }
 
