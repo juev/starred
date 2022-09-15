@@ -34,7 +34,7 @@ func NewGithub(ctx context.Context, token string) (client *Github) {
 }
 
 // GetRepositories getting repositories from Github
-func (g *Github) GetRepositories(ctx context.Context) (languageList []string, langRepoMap map[string][]github.Repository, repositories []github.Repository) {
+func (g *Github) GetRepositories(ctx context.Context) (langRepoMap map[string][]github.Repository, repositories []github.Repository) {
 	opt := &github.ActivityListStarredOptions{}
 	opt.ListOptions.PerPage = perPage
 
@@ -58,7 +58,7 @@ func (g *Github) GetRepositories(ctx context.Context) (languageList []string, la
 	}
 
 	if len(repositories) == 0 {
-		return nil, nil, repositories
+		return nil, repositories
 	}
 
 	langRepoMap = make(map[string][]github.Repository)
@@ -71,12 +71,11 @@ func (g *Github) GetRepositories(ctx context.Context) (languageList []string, la
 		langList, ok := langRepoMap[lang]
 		if !ok {
 			langList = []github.Repository{}
-			languageList = append(languageList, lang)
 		}
 		langList = append(langList, r)
 		langRepoMap[lang] = langList
 	}
-	return languageList, langRepoMap, repositories
+	return langRepoMap, repositories
 }
 
 // UpdateReadmeFile updates README file
@@ -90,7 +89,7 @@ func (g *Github) UpdateReadmeFile(ctx context.Context) {
 	if err != nil || resp.StatusCode != 200 {
 		if _, _, err := g.client.Repositories.CreateFile(ctx, username, repository, "README.md", &github.RepositoryContentFileOptions{
 			Message: &message,
-			Content: []byte(builder.String()),
+			Content: []byte(buffer.String()),
 		}); err != nil {
 			fmt.Printf("Error: cannot create file: %v\n", err)
 			os.Exit(3)
@@ -100,7 +99,7 @@ func (g *Github) UpdateReadmeFile(ctx context.Context) {
 	// if file is exist, update it
 	if _, _, err = g.client.Repositories.UpdateFile(ctx, username, repository, "README.md", &github.RepositoryContentFileOptions{
 		Message: &message,
-		Content: []byte(builder.String()),
+		Content: []byte(buffer.String()),
 		SHA:     readmeFile.SHA,
 	}); err != nil {
 		fmt.Printf("Error: cannot update file: %v\n", err)
