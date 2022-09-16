@@ -8,13 +8,12 @@
 - [{{ $lang }}](#{{ toLink $lang }})
 {{- end }}
 
----
 {{ range $lang, $langMap := .LangRepoMap }}
 ## [{{ $lang }}](id:{{ toLink $lang }})
 
 {{ range $langMap -}}
     {{ if ne .Description nil -}}
-- [{{ .FullName }}]({{ .HTMLURL }}) –- {{ .Description }}{{ else -}}
+- [{{ .FullName }}]({{ .HTMLURL }}) – {{ .Description }}{{ else -}}
 - [{{ .FullName }}]({{ .HTMLURL }}){{- end }}
 {{ end }}
 {{- end }}
@@ -25,7 +24,6 @@
 - [{{ .FullName }}]({{ .HTMLURL }})
 {{ end }}
 {{ end -}}
----
 
 ## License
 
