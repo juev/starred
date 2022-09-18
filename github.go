@@ -9,6 +9,8 @@ import (
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const (
@@ -65,7 +67,7 @@ func (g *Github) GetRepositories(ctx context.Context) (langRepoMap map[string][]
 	for _, r := range repositories {
 		lang := "Others"
 		if r.Language != nil {
-			lang = *r.Language
+			lang = cases.Title(language.English).String(*r.Language)
 		}
 
 		langList, ok := langRepoMap[lang]
