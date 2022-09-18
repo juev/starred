@@ -9,7 +9,9 @@
 {{- end }}
 
 {{ range $lang, $langMap := .LangRepoMap }}
-## [{{ $lang }}](id:{{ toLink $lang }})
+<div id="{{ toLink $lang }}"></div>
+
+## {{ $lang }}
 
 {{ range $langMap -}}
     {{ if ne .Description nil -}}
