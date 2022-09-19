@@ -7,35 +7,34 @@
 - [Adblock Filter List](#adblock-filter-list)
 - [C](#c)
 - [C#](#c#)
+- [CSS](#css)
 - [Common Lisp](#common-lisp)
-- [Css](#css)
 - [Dockerfile](#dockerfile)
 - [Elixir](#elixir)
 - [Emacs Lisp](#emacs-lisp)
 - [Gherkin](#gherkin)
 - [Go](#go)
+- [HTML](#html)
 - [Haskell](#haskell)
-- [Html](#html)
 - [Java](#java)
-- [Javascript](#javascript)
+- [JavaScript](#javascript)
 - [Jupyter Notebook](#jupyter-notebook)
-- [Lua](#lua)
+- [LUA](#lua)
 - [Makefile](#makefile)
-- [Nix](#nix)
 - [Others](#others)
 - [Python](#python)
 - [Ruby](#ruby)
 - [Rust](#rust)
-- [Scss](#scss)
+- [SCSS](#scss)
 - [Shell](#shell)
 - [Swift](#swift)
-- [Tex](#tex)
+- [TeX](#tex)
 - [Typescript](#typescript)
 - [V](#v)
 - [Vim Script](#vim-script)
-- [Viml](#viml)
+- [VimL](#viml)
 - [Vue](#vue)
-- [Wikitext](#wikitext)
+- [WikiText](#wikitext)
 - [Wren](#wren)
 - [Zig](#zig)
 
@@ -70,22 +69,22 @@
 
 - [bitwarden/server](https://github.com/bitwarden/server) – The core infrastructure backend (API, database, Docker, etc).
 
-<div id="common-lisp"></div>
-
-## Common Lisp
-
-- [roswell/roswell](https://github.com/roswell/roswell) – intended to be a launcher for a major lisp environment that just works.
-- [ultralisp/ultralisp](https://github.com/ultralisp/ultralisp) – The software behind a Ultralisp.org Common Lisp repository
-
 <div id="css"></div>
 
-## Css
+## CSS
 
 - [nalgeon/sqlite-weekly](https://github.com/nalgeon/sqlite-weekly) – Weekly SQLite news, articles and extensions ✨
 - [rougier/emacs-gtd](https://github.com/rougier/emacs-gtd) – Get Things Done with Emacs
 - [cli-guidelines/cli-guidelines](https://github.com/cli-guidelines/cli-guidelines) – A guide to help you write better command-line programs, taking traditional UNIX principles and updating them for the modern day.
 - [black7375/Firefox-UI-Fix](https://github.com/black7375/Firefox-UI-Fix) – 🦊 I respect proton UI and aim to improve it.
 - [ryanoasis/nerd-fonts](https://github.com/ryanoasis/nerd-fonts) – Iconic font aggregator, collection, & patcher. 3,600+ icons, 50+ patched fonts: Hack, Source Code Pro, more. Glyph collections: Font Awesome, Material Design Icons, Octicons, & more
+
+<div id="common-lisp"></div>
+
+## Common Lisp
+
+- [roswell/roswell](https://github.com/roswell/roswell) – intended to be a launcher for a major lisp environment that just works.
+- [ultralisp/ultralisp](https://github.com/ultralisp/ultralisp) – The software behind a Ultralisp.org Common Lisp repository
 
 <div id="dockerfile"></div>
 
@@ -682,6 +681,23 @@
 - [nishanths/license](https://github.com/nishanths/license) – Command-line license text generator.
 - [gohugoio/hugo](https://github.com/gohugoio/hugo) – The world’s fastest framework for building websites.
 
+<div id="html"></div>
+
+## HTML
+
+- [juev/foam](https://github.com/juev/foam)
+- [Konstantin8105/Effective_Go_RU](https://github.com/Konstantin8105/Effective_Go_RU) – Перевод - Эффективный Go
+- [chrisalbon/short_notes_on_machine_learning](https://github.com/chrisalbon/short_notes_on_machine_learning) – Notes On Using Data Science & Artificial Intelligence To Fight For Something That Matters.
+- [joyeusenoelle/GuideToMastodon](https://github.com/joyeusenoelle/GuideToMastodon) – An increasingly less-brief guide to Mastodon
+- [apvarun/digital-garden-hugo-theme](https://github.com/apvarun/digital-garden-hugo-theme) – Build your own personal Digital Garden effortlessly with this Hugo theme
+- [go101/go101](https://github.com/go101/go101) – An online book focusing on Go syntax/semantics and runtime related things
+- [waferbaby/usesthis](https://github.com/waferbaby/usesthis) – A nerdy little interview website, asking people from all walks of life what they use to get the job done.
+- [geek-cookbook/geek-cookbook](https://github.com/geek-cookbook/geek-cookbook) – The "Geek's Cookbook" is a collection of guides for establishing your own highly-available "private cloud" and using it to run self-hosted services such as GitLab, Plex, NextCloud, etc.
+- [munificent/craftinginterpreters](https://github.com/munificent/craftinginterpreters) – Repository for the book "Crafting Interpreters"
+- [RichardLitt/knowledge](https://github.com/RichardLitt/knowledge) – 💡 document everything
+- [gnab/remark](https://github.com/gnab/remark) – A simple, in-browser, markdown-driven slideshow tool.
+- [Igglybuff/awesome-piracy](https://github.com/Igglybuff/awesome-piracy) – A curated list of awesome warez and piracy links
+
 <div id="haskell"></div>
 
 ## Haskell
@@ -716,23 +732,6 @@
 - [isovector/thinking-with-types](https://github.com/isovector/thinking-with-types) – 📖 source material for Thinking with Types
 - [krispo/awesome-haskell](https://github.com/krispo/awesome-haskell) – A collection of awesome Haskell links, frameworks, libraries and software. Inspired by awesome projects line.
 
-<div id="html"></div>
-
-## Html
-
-- [juev/foam](https://github.com/juev/foam)
-- [Konstantin8105/Effective_Go_RU](https://github.com/Konstantin8105/Effective_Go_RU) – Перевод - Эффективный Go
-- [chrisalbon/short_notes_on_machine_learning](https://github.com/chrisalbon/short_notes_on_machine_learning) – Notes On Using Data Science & Artificial Intelligence To Fight For Something That Matters.
-- [joyeusenoelle/GuideToMastodon](https://github.com/joyeusenoelle/GuideToMastodon) – An increasingly less-brief guide to Mastodon
-- [apvarun/digital-garden-hugo-theme](https://github.com/apvarun/digital-garden-hugo-theme) – Build your own personal Digital Garden effortlessly with this Hugo theme
-- [go101/go101](https://github.com/go101/go101) – An online book focusing on Go syntax/semantics and runtime related things
-- [waferbaby/usesthis](https://github.com/waferbaby/usesthis) – A nerdy little interview website, asking people from all walks of life what they use to get the job done.
-- [geek-cookbook/geek-cookbook](https://github.com/geek-cookbook/geek-cookbook) – The "Geek's Cookbook" is a collection of guides for establishing your own highly-available "private cloud" and using it to run self-hosted services such as GitLab, Plex, NextCloud, etc.
-- [munificent/craftinginterpreters](https://github.com/munificent/craftinginterpreters) – Repository for the book "Crafting Interpreters"
-- [RichardLitt/knowledge](https://github.com/RichardLitt/knowledge) – 💡 document everything
-- [gnab/remark](https://github.com/gnab/remark) – A simple, in-browser, markdown-driven slideshow tool.
-- [Igglybuff/awesome-piracy](https://github.com/Igglybuff/awesome-piracy) – A curated list of awesome warez and piracy links
-
 <div id="java"></div>
 
 ## Java
@@ -741,7 +740,7 @@
 
 <div id="javascript"></div>
 
-## Javascript
+## JavaScript
 
 - [serverless-dns/serverless-dns](https://github.com/serverless-dns/serverless-dns) – The RethinkDNS resolver that deploys to Cloudflare Workers, Deno Deploy, and Fly.io
 - [SadeghHayeri/GreenTunnel](https://github.com/SadeghHayeri/GreenTunnel) – GreenTunnel is an anti-censorship utility designed to bypass the DPI system that is put in place by various ISPs to block access to certain websites.
@@ -763,7 +762,7 @@
 
 <div id="lua"></div>
 
-## Lua
+## LUA
 
 - [luarocks/luarocks](https://github.com/luarocks/luarocks) – LuaRocks is the package manager for the Lua programming language.
 - [AstroNvim/AstroNvim](https://github.com/AstroNvim/AstroNvim) – AstroNvim is an aesthetic and feature-rich neovim config that is extensible and easy to use with a great set of plugins 
@@ -776,12 +775,6 @@
 
 - [netlify/binrc](https://github.com/netlify/binrc) – Binrc is a command line application to manage different versions of binaries stored on GitHub releases.
 - [davecheney/dotfiles](https://github.com/davecheney/dotfiles) – dot slash dot dot
-
-<div id="nix"></div>
-
-## Nix
-
-- [juev/nixpkgs](https://github.com/juev/nixpkgs)
 
 <div id="others"></div>
 
@@ -1281,7 +1274,7 @@
 
 <div id="scss"></div>
 
-## Scss
+## SCSS
 
 - [juev/juev.org](https://github.com/juev/juev.org) – Sources from my site
 
@@ -1476,7 +1469,7 @@
 
 <div id="tex"></div>
 
-## Tex
+## TeX
 
 - [dendibakh/perf-book](https://github.com/dendibakh/perf-book) – The book "Performance Analysis and Tuning on Modern CPU"
 - [Pseudomanifold/latex-mimosis](https://github.com/Pseudomanifold/latex-mimosis) – A minimal & modern LaTeX template for your (bachelor's | master's | doctoral) thesis
@@ -1507,7 +1500,7 @@
 - [lynchjames/note-refactor-obsidian](https://github.com/lynchjames/note-refactor-obsidian) – Allows for text selections to be copied (refactored) into new notes and notes to be split into other notes.
 - [undergroundwires/privacy.sexy](https://github.com/undergroundwires/privacy.sexy) – Open-source tool to enforce privacy & security best-practices on Windows and macOS, because privacy is sexy 🍑🍆
 - [outline/outline](https://github.com/outline/outline) – The fastest wiki and knowledge base for growing teams. Beautiful, realtime, feature rich, and markdown compatible.
-- [kamranahmedse/developer-roadmap](https://github.com/kamranahmedse/developer-roadmap) – Roadmap to becoming a developer in 2022
+- [kamranahmedse/developer-roadmap](https://github.com/kamranahmedse/developer-roadmap) – Community effort to create roadmaps, guides and other educational content to help the developers get an idea about the software development landscape, learn and grow in their career.
 - [tjhorner/archivebox-exporter](https://github.com/tjhorner/archivebox-exporter) – Automatically or manually send pages from your browser to your ArchiveBox for archival.
 - [vscode-org-mode/vscode-org-mode](https://github.com/vscode-org-mode/vscode-org-mode) – Emacs Org Mode for Visual Studio Code
 - [peaceiris/actions-hugo](https://github.com/peaceiris/actions-hugo) – GitHub Actions for Hugo ⚡️ Setup Hugo quickly and build your site fast. Hugo extended, Hugo Modules, Linux (Ubuntu), macOS, and Windows are supported.
@@ -1685,7 +1678,7 @@
 
 <div id="viml"></div>
 
-## Viml
+## VimL
 
 - [altercation/vim-colors-solarized](https://github.com/altercation/vim-colors-solarized) – precision colorscheme for the vim text editor
 - [vim-scripts/AutoComplPop](https://github.com/vim-scripts/AutoComplPop) – Automatically opens popup menu for completions
@@ -1703,7 +1696,7 @@
 
 <div id="wikitext"></div>
 
-## Wikitext
+## WikiText
 
 - [bitcoin/bips](https://github.com/bitcoin/bips) – Bitcoin Improvement Proposals
 
