@@ -76,7 +76,7 @@ func (g *Github) GetRepositories(ctx context.Context) (langRepoMap map[string][]
 				Description: r.Repository.GetDescription(),
 			})
 			// to prevent 429 status code
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(250 * time.Millisecond)
 		}
 
 		if len(reps) != perPage {
