@@ -10,6 +10,7 @@ import (
 
 	_ "embed"
 
+	"github.com/google/go-github/github"
 	flag "github.com/spf13/pflag"
 )
 
@@ -79,9 +80,9 @@ func main() {
 
 	r := struct {
 		SortCmd      bool
-		LangRepoMap  map[string][]Repository
+		LangRepoMap  map[string][]github.Repository
 		UserName     string
-		Repositories []Repository
+		Repositories []github.Repository
 	}{
 		SortCmd:      sortCmd,
 		LangRepoMap:  langRepoMap,
