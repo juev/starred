@@ -14,8 +14,9 @@
 ## {{ $lang }}
 
 {{ range $langMap -}}
-
-- [{{ .FullName }}]({{ .HTMLURL }}){{ if ne .Description "" }} – {{ .Description }}{{- end }}
+    {{ if ne .Description nil -}}
+- [{{ .FullName }}]({{ .HTMLURL }}) – {{ .Description }}{{ else -}}
+- [{{ .FullName }}]({{ .HTMLURL }}){{- end }}
 {{ end }}
 {{- end }}
 {{- else }}

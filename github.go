@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
@@ -24,14 +23,6 @@ type Github struct {
 	client *github.Client
 }
 
-// Repository struct for storing parameters from github.Repository
-type Repository struct {
-	FullName    string
-	HTMLURL     string
-	Language    string
-	Description string
-}
-
 // NewGithub creates new github client
 func NewGithub(ctx context.Context, token string) (client *Github) {
 	var tc *http.Client
@@ -45,7 +36,7 @@ func NewGithub(ctx context.Context, token string) (client *Github) {
 }
 
 // GetRepositories getting repositories from Github
-func (g *Github) GetRepositories(ctx context.Context) (langRepoMap map[string][]Repository, repositories []Repository) {
+func (g *Github) GetRepositories(ctx context.Context) (langRepoMap map[string][]github.Repository, repositories []github.Repository) {
 	opt := &github.ActivityListStarredOptions{}
 	opt.ListOptions.PerPage = perPage
 
@@ -58,25 +49,7 @@ func (g *Github) GetRepositories(ctx context.Context) (langRepoMap map[string][]
 			log.Fatalln("Error: cannot fetch starred:", err)
 		}
 		for _, r := range reps {
-			// check repository existing
-			resp, err := http.Head(r.Repository.GetHTMLURL())
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "error on http.Head: %v\n", err)
-				continue
-			}
-			if resp.StatusCode != http.StatusOK {
-				_, _ = fmt.Fprintf(os.Stderr, "(%s) status code: %v\n", r.Repository.GetHTMLURL(), resp.StatusCode)
-				continue
-			}
-			// end checking
-			repositories = append(repositories, Repository{
-				FullName:    r.Repository.GetFullName(),
-				HTMLURL:     r.Repository.GetHTMLURL(),
-				Language:    r.Repository.GetLanguage(),
-				Description: r.Repository.GetDescription(),
-			})
-			// to prevent 429 status code
-			time.Sleep(500 * time.Millisecond)
+			repositories = append(repositories, *r.Repository)
 		}
 
 		if len(reps) != perPage {
@@ -90,16 +63,16 @@ func (g *Github) GetRepositories(ctx context.Context) (langRepoMap map[string][]
 		return nil, repositories
 	}
 
-	langRepoMap = make(map[string][]Repository)
+	langRepoMap = make(map[string][]github.Repository)
 	for _, r := range repositories {
 		lang := "Others"
-		if r.Language != "" {
-			lang = capitalize(r.Language)
+		if r.Language != nil {
+			lang = capitalize(*r.Language)
 		}
 
 		langList, ok := langRepoMap[lang]
 		if !ok {
-			langList = []Repository{}
+			langList = []github.Repository{}
 		}
 		langList = append(langList, r)
 		langRepoMap[lang] = langList
