@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
@@ -58,25 +57,12 @@ func (g *Github) GetRepositories(ctx context.Context) (langRepoMap map[string][]
 			log.Fatalln("Error: cannot fetch starred:", err)
 		}
 		for _, r := range reps {
-			// check repository existing
-			resp, err := http.Head(r.Repository.GetHTMLURL())
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "error on http.Head: %v\n", err)
-				continue
-			}
-			if resp.StatusCode != http.StatusOK {
-				_, _ = fmt.Fprintf(os.Stderr, "(%s) status code: %v\n", r.Repository.GetHTMLURL(), resp.StatusCode)
-				continue
-			}
-			// end checking
 			repositories = append(repositories, Repository{
 				FullName:    r.Repository.GetFullName(),
 				HTMLURL:     r.Repository.GetHTMLURL(),
 				Language:    r.Repository.GetLanguage(),
 				Description: r.Repository.GetDescription(),
 			})
-			// to prevent 429 status code
-			time.Sleep(500 * time.Millisecond)
 		}
 
 		if len(reps) != perPage {
