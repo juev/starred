@@ -6,7 +6,7 @@ require (
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
-	golang.org/x/text v0.5.0
+	golang.org/x/text v0.6.0
 )
 
 require (
