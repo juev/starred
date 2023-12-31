@@ -50,7 +50,7 @@ func init() {
 		if version != "" {
 			versionStr = fmt.Sprintf("starred version: %s (%s) / builded %s\n", version, commit[:6], date)
 		}
-		fmt.Printf(versionStr)
+		fmt.Println(versionStr)
 		os.Exit(0)
 	}
 
@@ -67,12 +67,12 @@ func init() {
 func main() {
 	ctx := context.Background()
 
-	client := NewGithub(ctx, token)
+	client := New(token)
 
 	langRepoMap, repositories := client.GetRepositories(ctx)
 
 	var funcMap = template.FuncMap{
-		"toLink": func(lang string) string { return strings.ToLower(strings.Replace(lang, " ", "-", -1)) },
+		"toLink": func(lang string) string { return strings.ToLower(strings.ReplaceAll(lang, " ", "-")) },
 	}
 
 	temp := template.Must(template.New("starred").Funcs(funcMap).Parse(content))

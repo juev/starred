@@ -4,97 +4,95 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 
-	"github.com/google/go-github/github"
-	"golang.org/x/oauth2"
+	"github.com/google/go-github/v57/github"
+	"github.com/gregjones/httpcache"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
 const (
-	// perPage is how many links we get by ine shoot
+	// perPage is how many links we get by one shoot
 	perPage int = 100
+	// repositoriesCount is const for allocation memory to store repositories
+	repositoriesCount = 1000
+	// langReposCount is const for allocation memory to store langRepo
+	langReposCount = 100
 )
 
-// Github struct for requests
-type Github struct {
+// GitHub struct for requests
+type GitHub struct {
 	client *github.Client
 }
 
 // Repository struct for storing parameters from Repository
 type Repository struct {
 	FullName    string
-	HTMLURL     string
+	URL         string
 	Language    string
 	Description string
 }
 
-// NewGithub creates new github client
-func NewGithub(ctx context.Context, token string) (client *Github) {
-	var tc *http.Client
+// New creates new GitHub client
+func New(token string) (client *GitHub) {
+	gh := github.NewClient(
+		httpcache.NewMemoryCacheTransport().Client(),
+	)
 	if token != "" {
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: token},
-		)
-		tc = oauth2.NewClient(ctx, ts)
+		gh = gh.WithAuthToken(token)
 	}
-	return &Github{client: github.NewClient(tc)}
+	return &GitHub{client: gh}
 }
 
-// GetRepositories getting repositories from Github
-func (g *Github) GetRepositories(ctx context.Context) (langRepoMap map[string][]Repository, repositories []Repository) {
-	opt := &github.ActivityListStarredOptions{}
-	opt.ListOptions.PerPage = perPage
+// GetRepositories getting repositories from GitHub
+func (g *GitHub) GetRepositories(ctx context.Context) (langRepoMap map[string][]Repository, repositories []Repository) {
+	repositories = make([]Repository, 0, repositoriesCount)
+	langRepoMap = make(map[string][]Repository, langReposCount)
 
-	pageIdx := 1
+	opt := &github.ActivityListStarredOptions{
+		ListOptions: github.ListOptions{PerPage: perPage},
+	}
+
 	for {
-		opt.ListOptions.Page = pageIdx
-
-		reps, _, err := g.client.Activity.ListStarred(ctx, username, opt)
+		repos, resp, err := g.client.Activity.ListStarred(ctx, username, opt)
 		if err != nil {
 			log.Fatalln("Error: cannot fetch starred:", err)
 		}
-		for _, r := range reps {
-			repositories = append(repositories, Repository{
+		for _, r := range repos {
+			repo := Repository{
 				FullName:    r.Repository.GetFullName(),
-				HTMLURL:     r.Repository.GetHTMLURL(),
+				URL:         r.Repository.GetHTMLURL(),
 				Language:    r.Repository.GetLanguage(),
 				Description: r.Repository.GetDescription(),
-			})
+			}
+			repositories = append(repositories, repo)
+			lang := "Others"
+			if repo.Language != "" {
+				lang = capitalize(repo.Language)
+			}
+
+			if _, ok := langRepoMap[lang]; !ok {
+				langRepoMap[lang] = make([]Repository, 0, langReposCount)
+			}
+			langRepoMap[lang] = append(langRepoMap[lang], repo)
 		}
 
-		if len(reps) != perPage {
+		if resp.NextPage == 0 {
 			break
 		}
-
-		pageIdx++
+		opt.Page = resp.NextPage
 	}
 
 	if len(repositories) == 0 {
 		return nil, repositories
 	}
 
-	langRepoMap = make(map[string][]Repository)
-	for _, r := range repositories {
-		lang := "Others"
-		if r.Language != "" {
-			lang = capitalize(r.Language)
-		}
-
-		langList, ok := langRepoMap[lang]
-		if !ok {
-			langList = []Repository{}
-		}
-		langList = append(langList, r)
-		langRepoMap[lang] = langList
-	}
 	return langRepoMap, repositories
 }
 
 // UpdateReadmeFile updates README file
-func (g *Github) UpdateReadmeFile(ctx context.Context) {
+func (g *GitHub) UpdateReadmeFile(ctx context.Context) {
 	if _, resp, err := g.client.Repositories.Get(ctx, username, repository); err != nil || resp.StatusCode != 200 {
 		fmt.Printf("Error: check repository (%s) is exist : %v\n", repository, err)
 		os.Exit(2)
