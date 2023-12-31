@@ -8,13 +8,12 @@ import (
 
 	"github.com/google/go-github/v57/github"
 	"github.com/gregjones/httpcache"
+	"github.com/sourcegraph/conc"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
 const (
-	// perPage is how many links we get by one shoot
-	perPage int = 100
 	// repositoriesCount is const for allocation memory to store repositories
 	repositoriesCount = 1000
 	// langReposCount is const for allocation memory to store langRepo
@@ -50,15 +49,34 @@ func (g *GitHub) GetRepositories(ctx context.Context) (langRepoMap map[string][]
 	repositories = make([]Repository, 0, repositoriesCount)
 	langRepoMap = make(map[string][]Repository, langReposCount)
 
-	opt := &github.ActivityListStarredOptions{
-		ListOptions: github.ListOptions{PerPage: perPage},
+	_, resp, err := g.client.Activity.ListStarred(ctx, username, nil)
+	if err != nil {
+		log.Fatalln("Error: cannot fetch starred:", err)
 	}
 
-	for {
-		repos, resp, err := g.client.Activity.ListStarred(ctx, username, opt)
-		if err != nil {
-			log.Fatalln("Error: cannot fetch starred:", err)
+	ch := make(chan []*github.StarredRepository, 1)
+	go func() {
+		wg := conc.WaitGroup{}
+		for i := 1; i <= resp.LastPage; i++ {
+			i := i
+			wg.Go(func() {
+				opt := &github.ActivityListStarredOptions{
+					ListOptions: github.ListOptions{
+						Page: i,
+					},
+				}
+				repos, _, err := g.client.Activity.ListStarred(ctx, username, opt)
+				if err != nil {
+					log.Fatalln("Error: cannot fetch starred:", err)
+				}
+				ch <- repos
+			})
 		}
+		wg.Wait()
+		close(ch)
+	}()
+
+	for repos := range ch {
 		for _, r := range repos {
 			repo := Repository{
 				FullName:    r.Repository.GetFullName(),
@@ -77,11 +95,6 @@ func (g *GitHub) GetRepositories(ctx context.Context) (langRepoMap map[string][]
 			}
 			langRepoMap[lang] = append(langRepoMap[lang], repo)
 		}
-
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
 	}
 
 	if len(repositories) == 0 {
