@@ -1,10 +1,12 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log"
 	"os"
+	"slices"
 
 	"github.com/google/go-github/v57/github"
 	"github.com/gregjones/httpcache"
@@ -99,6 +101,16 @@ func (g *GitHub) GetRepositories(ctx context.Context) (langRepoMap map[string][]
 
 	if len(repositories) == 0 {
 		return nil, repositories
+	}
+
+	slices.SortFunc(repositories, func(a, b Repository) int {
+		return cmp.Compare(a.FullName, b.FullName)
+	})
+
+	for _, repositories := range langRepoMap {
+		slices.SortFunc(repositories, func(a, b Repository) int {
+			return cmp.Compare(a.FullName, b.FullName)
+		})
 	}
 
 	return langRepoMap, repositories
