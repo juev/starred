@@ -10,20 +10,18 @@
 
 {{ range $lang, $langMap := .LangRepoMap }}
 <div id="{{ toLink $lang }}"></div>
-
 ## {{ $lang }}
 
 {{ range $langMap -}}
-- [{{ .FullName }}]({{ .HTMLURL }}){{ if ne .Description "" }} – {{ .Description }}{{- end }}
-{{ end }}
-{{- end }}
+- [{{ .FullName }}]({{ .URL }}){{ if ne .Description "" }} – {{ .Description }}{{- end }}
+{{ end }}{{- end }}
 {{- else }}
 ## Repositories
 
 {{ range .Repositories -}}
-- [{{ .FullName }}]({{ .HTMLURL }})
+- [{{ .FullName }}]({{ .URL }})
 {{ end }}
-{{ end -}}
+{{- end }}
 
 ## License
 
