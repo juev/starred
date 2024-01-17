@@ -8,7 +8,7 @@ import (
 	"os"
 	"slices"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v58/github"
 	"github.com/gregjones/httpcache"
 	"github.com/sourcegraph/conc"
 	"golang.org/x/text/cases"
