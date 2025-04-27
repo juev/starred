@@ -7,11 +7,11 @@ import (
 	"log"
 	"os"
 	"slices"
-	"sync"
 	"time"
 
 	"github.com/google/go-github/v71/github"
 	"github.com/gregjones/httpcache"
+	"github.com/sourcegraph/conc/pool"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -57,37 +57,29 @@ func (g *GitHub) GetRepositories(ctx context.Context) (langRepoMap map[string][]
 		log.Fatalln("Error: cannot fetch starred:", err)
 	}
 
-	ch := make(chan []*github.StarredRepository, 1)
-	const concarentLimits = 50
-	chLimit := make(chan struct{}, concarentLimits)
-	go func() {
-		wg := sync.WaitGroup{}
-		for i := 1; i <= resp.LastPage; i++ {
-			page := i
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				chLimit <- struct{}{}
-				defer func() {
-					<-chLimit
-				}()
-				opt := &github.ActivityListStarredOptions{
-					ListOptions: github.ListOptions{
-						Page: page,
-					},
-				}
-				repos, err := g.getStarredRepositories(ctx, username, opt)
-				if err != nil {
-					log.Fatalln("Error: cannot fetch starred:", err)
-				}
-				ch <- repos
-			}()
-		}
-		wg.Wait()
-		close(ch)
-	}()
+	// https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api?apiVersion=2022-11-28
+	// No more than 100 concurrent requests are allowed. This limit is shared across the REST API and GraphQL API.
+	// We use a pool to limit the number of concurrent requests with a maximum of 90 goroutines.
+	const concarentLimits = 90
+	p := pool.NewWithResults[[]*github.StarredRepository]().WithMaxGoroutines(concarentLimits)
+	for i := 1; i <= resp.LastPage; i++ {
+		page := i
+		p.Go(func() []*github.StarredRepository {
+			opt := &github.ActivityListStarredOptions{
+				ListOptions: github.ListOptions{
+					Page: page,
+				},
+			}
+			repos, err := g.getStarredRepositories(ctx, username, opt)
+			if err != nil {
+				log.Fatalln("Error: cannot fetch starred:", err)
+			}
+			return repos
+		})
+	}
+	githubRepos := p.Wait()
 
-	for repos := range ch {
+	for _, repos := range githubRepos {
 		for _, r := range repos {
 			repo := Repository{
 				FullName:    r.Repository.GetFullName(),
@@ -130,6 +122,7 @@ func (g *GitHub) getStarredRepositories(ctx context.Context, username string, op
 		repos, resp, err := g.client.Activity.ListStarred(ctx, username, opts)
 		if resp.Rate.Remaining == 0 {
 			duration := time.Duration(resp.Rate.Reset.GetTime().Sub(time.Now())) * time.Second
+			log.Default().Printf("Rate limit exceeded, sleeping for %s", duration)
 			time.Sleep(duration)
 			continue
 		}
