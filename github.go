@@ -60,8 +60,8 @@ func (g *GitHub) GetRepositories(ctx context.Context) (langRepoMap map[string][]
 	// https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api?apiVersion=2022-11-28
 	// No more than 100 concurrent requests are allowed. This limit is shared across the REST API and GraphQL API.
 	// We use a pool to limit the number of concurrent requests with a maximum of 90 goroutines.
-	const concarentLimits = 90
-	p := pool.NewWithResults[[]*github.StarredRepository]().WithMaxGoroutines(concarentLimits)
+	const concurrentLimits = 90
+	p := pool.NewWithResults[[]*github.StarredRepository]().WithMaxGoroutines(concurrentLimits)
 	for i := 1; i <= resp.LastPage; i++ {
 		page := i
 		p.Go(func() []*github.StarredRepository {
@@ -121,7 +121,7 @@ func (g *GitHub) getStarredRepositories(ctx context.Context, username string, op
 	for {
 		repos, resp, err := g.client.Activity.ListStarred(ctx, username, opts)
 		if resp.Rate.Remaining == 0 {
-			duration := time.Duration(resp.Rate.Reset.GetTime().Sub(time.Now())) * time.Second
+			duration := resp.Rate.Reset.GetTime().Sub(time.Now())
 			log.Default().Printf("Rate limit exceeded, sleeping for %s", duration)
 			time.Sleep(duration)
 			continue
