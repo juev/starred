@@ -7,10 +7,11 @@ import (
 	"log"
 	"os"
 	"slices"
+	"sync"
+	"time"
 
-	"github.com/google/go-github/v58/github"
+	"github.com/google/go-github/v71/github"
 	"github.com/gregjones/httpcache"
-	"github.com/sourcegraph/conc"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -57,22 +58,30 @@ func (g *GitHub) GetRepositories(ctx context.Context) (langRepoMap map[string][]
 	}
 
 	ch := make(chan []*github.StarredRepository, 1)
+	const concarentLimits = 50
+	chLimit := make(chan struct{}, concarentLimits)
 	go func() {
-		wg := conc.WaitGroup{}
+		wg := sync.WaitGroup{}
 		for i := 1; i <= resp.LastPage; i++ {
-			i := i
-			wg.Go(func() {
+			page := i
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				chLimit <- struct{}{}
+				defer func() {
+					<-chLimit
+				}()
 				opt := &github.ActivityListStarredOptions{
 					ListOptions: github.ListOptions{
-						Page: i,
+						Page: page,
 					},
 				}
-				repos, _, err := g.client.Activity.ListStarred(ctx, username, opt)
+				repos, err := g.getStarredRepositories(ctx, username, opt)
 				if err != nil {
 					log.Fatalln("Error: cannot fetch starred:", err)
 				}
 				ch <- repos
-			})
+			}()
 		}
 		wg.Wait()
 		close(ch)
@@ -114,6 +123,21 @@ func (g *GitHub) GetRepositories(ctx context.Context) (langRepoMap map[string][]
 	}
 
 	return langRepoMap, repositories
+}
+
+func (g *GitHub) getStarredRepositories(ctx context.Context, username string, opts *github.ActivityListStarredOptions) ([]*github.StarredRepository, error) {
+	for {
+		repos, resp, err := g.client.Activity.ListStarred(ctx, username, opts)
+		if resp.Rate.Remaining == 0 {
+			duration := time.Duration(resp.Rate.Reset.GetTime().Sub(time.Now())) * time.Second
+			time.Sleep(duration)
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		return repos, nil
+	}
 }
 
 // UpdateReadmeFile updates README file
