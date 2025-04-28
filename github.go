@@ -62,6 +62,9 @@ func (g *GitHub) GetRepositories(ctx context.Context) (map[string][]Repository, 
 	}
 
 	repos, resp, err := g.client.Activity.ListStarred(ctx, username, opt(1))
+	if resp.Rate.Remaining < 10 {
+		log.Fatal("Rate limit exceeded")
+	}
 	if err != nil {
 		log.Fatalln("Error: cannot fetch starred:", err)
 	}
@@ -137,10 +140,11 @@ func (g *GitHub) getStarredRepositories(
 	for {
 		repos, resp, err := g.client.Activity.ListStarred(ctx, username, opts)
 		if resp.Rate.Remaining < 10 {
-			sleepDuration := time.Until(resp.Rate.Reset.Time)
-			log.Default().Printf("Rate limit exceeded, sleeping for %s", sleepDuration)
-			time.Sleep(sleepDuration)
-			continue
+			if sleepDuration := time.Until(resp.Rate.Reset.Time); sleepDuration > 0 {
+				log.Default().Printf("Rate limit exceeded, sleeping for %s", sleepDuration)
+				time.Sleep(sleepDuration)
+				continue
+			}
 		}
 		if err != nil {
 			return nil, err
