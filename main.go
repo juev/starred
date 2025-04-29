@@ -69,7 +69,10 @@ func main() {
 
 	client := New(token)
 
-	langRepoMap, repositories := client.GetRepositories(ctx)
+	langRepoMap, repositories, err := client.GetRepositories(ctx)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	var funcMap = template.FuncMap{
 		"toLink": func(lang string) string { return strings.ToLower(strings.ReplaceAll(lang, " ", "-")) },
@@ -89,7 +92,7 @@ func main() {
 		Repositories: repositories,
 	}
 
-	err := temp.Execute(&buffer, r)
+	err = temp.Execute(&buffer, r)
 	if err != nil {
 		log.Fatalln(err)
 	}

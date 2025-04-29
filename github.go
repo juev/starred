@@ -7,10 +7,11 @@ import (
 	"log"
 	"os"
 	"slices"
+	"time"
 
-	"github.com/google/go-github/v58/github"
+	"github.com/google/go-github/v71/github"
 	"github.com/gregjones/httpcache"
-	"github.com/sourcegraph/conc"
+	"github.com/sourcegraph/conc/pool"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -47,60 +48,76 @@ func New(token string) (client *GitHub) {
 }
 
 // GetRepositories getting repositories from GitHub
-func (g *GitHub) GetRepositories(ctx context.Context) (langRepoMap map[string][]Repository, repositories []Repository) {
-	repositories = make([]Repository, 0, repositoriesCount)
-	langRepoMap = make(map[string][]Repository, langReposCount)
+func (g *GitHub) GetRepositories(ctx context.Context) (map[string][]Repository, []Repository, error) {
+	repositories := make([]Repository, 0, repositoriesCount)
+	langRepoMap := make(map[string][]Repository, langReposCount)
 
-	_, resp, err := g.client.Activity.ListStarred(ctx, username, nil)
+	opt := func(page int) *github.ActivityListStarredOptions {
+		return &github.ActivityListStarredOptions{
+			ListOptions: github.ListOptions{
+				PerPage: 100,
+				Page:    page,
+			},
+		}
+	}
+
+	repos, resp, err := g.client.Activity.ListStarred(ctx, username, opt(1))
+	if resp.Rate.Remaining < 10 {
+		log.Fatal("Rate limit exceeded")
+	}
 	if err != nil {
 		log.Fatalln("Error: cannot fetch starred:", err)
 	}
 
-	ch := make(chan []*github.StarredRepository, 1)
-	go func() {
-		wg := conc.WaitGroup{}
-		for i := 1; i <= resp.LastPage; i++ {
-			i := i
-			wg.Go(func() {
-				opt := &github.ActivityListStarredOptions{
-					ListOptions: github.ListOptions{
-						Page: i,
-					},
-				}
-				repos, _, err := g.client.Activity.ListStarred(ctx, username, opt)
-				if err != nil {
-					log.Fatalln("Error: cannot fetch starred:", err)
-				}
-				ch <- repos
-			})
-		}
-		wg.Wait()
-		close(ch)
-	}()
+	// https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api?apiVersion=2022-11-28
+	// No more than 100 concurrent requests are allowed. This limit is shared across the REST API and GraphQL API.
+	// We use a pool to limit the number of concurrent requests with a maximum of 90 goroutines.
+	const concurrentLimits = 90
+	p := pool.NewWithResults[[]*github.StarredRepository]().
+		WithMaxGoroutines(concurrentLimits).
+		WithContext(ctx).
+		WithCancelOnError().
+		WithFirstError()
+	for i := 2; i <= resp.LastPage; i++ {
+		page := i
+		p.Go(func(ctx context.Context) ([]*github.StarredRepository, error) {
+			githubRepos, err := g.getStarredRepositories(ctx, username, opt(page))
+			if err != nil {
+				return nil, err
+			}
+			return githubRepos, nil
+		})
+	}
+	githubRepos, err := p.Wait()
+	if err != nil {
+		return nil, nil, err
+	}
 
-	for repos := range ch {
-		for _, r := range repos {
-			repo := Repository{
-				FullName:    r.Repository.GetFullName(),
-				URL:         r.Repository.GetHTMLURL(),
-				Language:    r.Repository.GetLanguage(),
-				Description: r.Repository.GetDescription(),
-			}
-			repositories = append(repositories, repo)
-			lang := "Others"
-			if repo.Language != "" {
-				lang = capitalize(repo.Language)
-			}
+	for _, r := range githubRepos {
+		repos = append(repos, r...)
+	}
 
-			if _, ok := langRepoMap[lang]; !ok {
-				langRepoMap[lang] = make([]Repository, 0, langReposCount)
-			}
-			langRepoMap[lang] = append(langRepoMap[lang], repo)
+	for _, r := range repos {
+		repo := Repository{
+			FullName:    r.Repository.GetFullName(),
+			URL:         r.Repository.GetHTMLURL(),
+			Language:    r.Repository.GetLanguage(),
+			Description: r.Repository.GetDescription(),
 		}
+		repositories = append(repositories, repo)
+		lang := "Others"
+		if repo.Language != "" {
+			lang = capitalize(repo.Language)
+		}
+
+		if _, ok := langRepoMap[lang]; !ok {
+			langRepoMap[lang] = make([]Repository, 0, langReposCount)
+		}
+		langRepoMap[lang] = append(langRepoMap[lang], repo)
 	}
 
 	if len(repositories) == 0 {
-		return nil, repositories
+		return langRepoMap, repositories, nil
 	}
 
 	slices.SortFunc(repositories, func(a, b Repository) int {
@@ -113,7 +130,27 @@ func (g *GitHub) GetRepositories(ctx context.Context) (langRepoMap map[string][]
 		})
 	}
 
-	return langRepoMap, repositories
+	return langRepoMap, repositories, nil
+}
+
+func (g *GitHub) getStarredRepositories(
+	ctx context.Context,
+	username string,
+	opts *github.ActivityListStarredOptions) ([]*github.StarredRepository, error) {
+	for {
+		repos, resp, err := g.client.Activity.ListStarred(ctx, username, opts)
+		if resp.Rate.Remaining < 10 {
+			if sleepDuration := time.Until(resp.Rate.Reset.Time); sleepDuration > 0 {
+				log.Default().Printf("Rate limit exceeded, sleeping for %s", sleepDuration)
+				time.Sleep(sleepDuration)
+				continue
+			}
+		}
+		if err != nil {
+			return nil, err
+		}
+		return repos, nil
+	}
 }
 
 // UpdateReadmeFile updates README file
