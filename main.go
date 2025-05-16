@@ -34,9 +34,9 @@ var (
 func init() {
 	flag.StringVarP(&username, "username", "u", "", "GitHub username (required)")
 	flag.StringVarP(&token, "token", "t", "", "GitHub token")
-	flag.StringVarP(&repository, "repository", "r", "", "repository name")
+	flag.StringVarP(&repository, "repository", "r", "", "repository name (e.g., \"awesome-stars\")")
 	flag.StringVarP(&message, "message", "m", "update stars", "commit message")
-	flag.StringVarP(&tpl, "template", "T", "", "template file")
+	flag.StringVarP(&tpl, "template", "T", "", "template file to customize output")
 	flag.BoolVarP(&sortCmd, "sort", "s", false, "sort by language")
 	flag.BoolVarP(&help, "help", "h", false, "show this message and exit")
 	flag.BoolVarP(&versionCmd, "version", "v", false, "show the version and exit")
@@ -66,13 +66,7 @@ func init() {
 	}
 
 	if tpl != "" {
-		f, err := os.Open(tpl)
-		if err != nil {
-			fmt.Printf("Error: template file open failed: %s\n", err)
-			os.Exit(1)
-		}
-		defer f.Close()
-
+		var err error
 		content, err = os.ReadFile(tpl)
 		if err != nil {
 			fmt.Printf("Error: template file read failed: %s\n", err)
@@ -125,8 +119,7 @@ func usage() {
 	fmt.Println(`
 Usage: starred [OPTIONS]
 
-  GitHub starred
-  creating your own Awesome List used GitHub stars!
+  Starred: A tool to create your own Awesome List using your GitHub stars!
 
   example:
     starred --username juev --sort > README.md
