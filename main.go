@@ -14,7 +14,7 @@ import (
 )
 
 //go:embed templates/template.tmpl
-var content string
+var content []byte
 
 var (
 	username   string
@@ -28,6 +28,7 @@ var (
 	version    string
 	commit     string
 	date       string
+	tpl        string
 )
 
 func init() {
@@ -35,6 +36,7 @@ func init() {
 	flag.StringVarP(&token, "token", "t", "", "GitHub token")
 	flag.StringVarP(&repository, "repository", "r", "", "repository name")
 	flag.StringVarP(&message, "message", "m", "update stars", "commit message")
+	flag.StringVarP(&tpl, "template", "T", "", "template file")
 	flag.BoolVarP(&sortCmd, "sort", "s", false, "sort by language")
 	flag.BoolVarP(&help, "help", "h", false, "show this message and exit")
 	flag.BoolVarP(&versionCmd, "version", "v", false, "show the version and exit")
@@ -62,6 +64,21 @@ func init() {
 		fmt.Println("Error: repository need set token")
 		os.Exit(1)
 	}
+
+	if tpl != "" {
+		f, err := os.Open(tpl)
+		if err != nil {
+			fmt.Printf("Error: template file open failed: %s\n", err)
+			os.Exit(1)
+		}
+		defer f.Close()
+
+		content, err = os.ReadFile(tpl)
+		if err != nil {
+			fmt.Printf("Error: template file read failed: %s\n", err)
+			os.Exit(1)
+		}
+	}
 }
 
 func main() {
@@ -78,7 +95,7 @@ func main() {
 		"toLink": func(lang string) string { return strings.ToLower(strings.ReplaceAll(lang, " ", "-")) },
 	}
 
-	temp := template.Must(template.New("starred").Funcs(funcMap).Parse(content))
+	temp := template.Must(template.New("starred").Funcs(funcMap).Parse(string(content)))
 
 	r := struct {
 		SortCmd      bool
