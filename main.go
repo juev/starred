@@ -40,7 +40,9 @@ func init() {
 	flag.BoolVarP(&sortCmd, "sort", "s", false, "sort by language")
 	flag.BoolVarP(&help, "help", "h", false, "show this message and exit")
 	flag.BoolVarP(&versionCmd, "version", "v", false, "show the version and exit")
+}
 
+func configure() {
 	flag.Parse()
 
 	if token == "" {
@@ -76,6 +78,8 @@ func init() {
 }
 
 func main() {
+	configure()
+
 	ctx := context.Background()
 
 	client := New(token)

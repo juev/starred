@@ -13,15 +13,15 @@ jobs:
           fetch-depth: 0
       -
         name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
-          go-version: '>=1.20.0'
+          go-version-file: go.mod
           check-latest: true
       -
         name: Install dependencies
         run: |
           go version
-          go install golang.org/x/lint/golint@latest
+          go install honnef.co/go/tools/cmd/staticcheck@latest
       -
         name: Run build
         run: go build .
@@ -29,4 +29,4 @@ jobs:
         name: Run vet & lint
         run: |
           go vet .
-          golint .
+          staticcheck .

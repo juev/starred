@@ -4,7 +4,7 @@
 
 ## Install
 
-Go 1.10+ is required. [Golang Getting Started](https://go.dev/doc/install)
+Go 1.25+ is required. [Golang Getting Started](https://go.dev/doc/install)
 
 ```bash
 $ go install github.com/juev/starred@latest

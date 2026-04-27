@@ -62,11 +62,14 @@ func (g *GitHub) GetRepositories(ctx context.Context) (map[string][]Repository, 
 	}
 
 	repos, resp, err := g.client.Activity.ListStarred(ctx, username, opt(1))
-	if resp.Rate.Remaining < 10 {
-		log.Fatal("Rate limit exceeded")
-	}
 	if err != nil {
-		log.Fatalln("Error: cannot fetch starred:", err)
+		return nil, nil, fmt.Errorf("cannot fetch starred: %w", err)
+	}
+	if resp == nil {
+		return nil, nil, fmt.Errorf("cannot fetch starred: empty response")
+	}
+	if resp.Rate.Remaining < 10 {
+		return nil, nil, fmt.Errorf("rate limit exceeded")
 	}
 
 	// https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api?apiVersion=2022-11-28
@@ -139,15 +142,18 @@ func (g *GitHub) getStarredRepositories(
 	opts *github.ActivityListStarredOptions) ([]*github.StarredRepository, error) {
 	for {
 		repos, resp, err := g.client.Activity.ListStarred(ctx, username, opts)
+		if err != nil {
+			return nil, err
+		}
+		if resp == nil {
+			return nil, fmt.Errorf("cannot fetch starred: empty response")
+		}
 		if resp.Rate.Remaining < 10 {
 			if sleepDuration := time.Until(resp.Rate.Reset.Time); sleepDuration > 0 {
 				log.Default().Printf("Rate limit exceeded, sleeping for %s", sleepDuration)
 				time.Sleep(sleepDuration)
 				continue
 			}
-		}
-		if err != nil {
-			return nil, err
 		}
 		return repos, nil
 	}
