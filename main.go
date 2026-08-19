@@ -91,20 +91,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	r := struct {
-		SortCmd      bool
-		LangRepoMap  map[string][]Repository
-		UserName     string
-		Repositories []Repository
-	}{
+	data := templateData{
 		SortCmd:      sortCmd,
 		LangRepoMap:  langRepoMap,
 		UserName:     username,
 		Repositories: repositories,
 	}
 
-	err = temp.Execute(&buffer, r)
-	if err != nil {
+	if err := temp.Execute(&buffer, data); err != nil {
 		log.Fatalln(err)
 	}
 
@@ -132,6 +126,14 @@ func buildVersionString(version, commit, date string) string {
 		commit = commit[:6]
 	}
 	return fmt.Sprintf("starred version: %s (%s) / built %s\n", version, commit, date)
+}
+
+// templateData is the data passed to the output template.
+type templateData struct {
+	SortCmd      bool
+	LangRepoMap  map[string][]Repository
+	UserName     string
+	Repositories []Repository
 }
 
 // parseTemplate parses the output template with the built-in function map.
