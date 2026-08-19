@@ -5,12 +5,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"slices"
 	"time"
 
 	"github.com/google/go-github/v71/github"
-	"github.com/gregjones/httpcache"
 	"github.com/sourcegraph/conc/pool"
 )
 
@@ -34,11 +34,17 @@ type Repository struct {
 	Description string
 }
 
+// httpClientTimeout bounds a single API request so a stalled connection
+// cannot hang the process forever.
+const httpClientTimeout = 30 * time.Second
+
+func newHTTPClient() *http.Client {
+	return &http.Client{Timeout: httpClientTimeout}
+}
+
 // New creates new GitHub client
 func New(token string) (client *GitHub) {
-	gh := github.NewClient(
-		httpcache.NewMemoryCacheTransport().Client(),
-	)
+	gh := github.NewClient(newHTTPClient())
 	if token != "" {
 		gh = gh.WithAuthToken(token)
 	}
