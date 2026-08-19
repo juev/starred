@@ -112,7 +112,14 @@ func main() {
 		fmt.Println(buffer.String())
 		return
 	}
-	client.UpdateReadmeFile(ctx)
+	if err := client.UpdateReadmeFile(ctx, UpdateRequest{
+		Owner:   username,
+		Repo:    repository,
+		Message: message,
+		Content: []byte(buffer.String()),
+	}); err != nil {
+		log.Fatalln(err)
+	}
 }
 
 // buildVersionString renders the --version output. commit is truncated to six

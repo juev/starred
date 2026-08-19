@@ -3,10 +3,10 @@ package main
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"slices"
 	"time"
 
@@ -174,31 +174,65 @@ func sleepContext(ctx context.Context, d time.Duration) error {
 	}
 }
 
-// UpdateReadmeFile updates README file
-func (g *GitHub) UpdateReadmeFile(ctx context.Context) {
-	if _, resp, err := g.client.Repositories.Get(ctx, username, repository); err != nil || resp.StatusCode != 200 {
-		fmt.Printf("Error: check repository (%s) is exist : %v\n", repository, err)
-		os.Exit(2)
+// UpdateRequest describes the README.md update to perform.
+type UpdateRequest struct {
+	Owner   string
+	Repo    string
+	Message string
+	Content []byte
+}
+
+// UpdateReadmeFile creates or updates README.md in the given repository. If
+// the file changed between reading and updating (409 Conflict), it re-reads
+// the SHA and retries the update once.
+func (g *GitHub) UpdateReadmeFile(ctx context.Context, req UpdateRequest) error {
+	if _, _, err := g.client.Repositories.Get(ctx, req.Owner, req.Repo); err != nil {
+		return fmt.Errorf("cannot check repository %s/%s exists: %w", req.Owner, req.Repo, err)
 	}
-	readmeFile, _, resp, err := g.client.Repositories.GetContents(ctx, username, repository, "README.md", &github.RepositoryContentGetOptions{})
-	// if file is not exist, just create it
-	if err != nil || resp.StatusCode != 200 {
-		if _, _, err := g.client.Repositories.CreateFile(ctx, username, repository, "README.md", &github.RepositoryContentFileOptions{
-			Message: &message,
-			Content: []byte(buffer.String()),
+
+	readmeFile, _, resp, err := g.client.Repositories.GetContents(ctx, req.Owner, req.Repo, "README.md", &github.RepositoryContentGetOptions{})
+	// if file does not exist, just create it
+	if err != nil || resp == nil || resp.StatusCode != http.StatusOK {
+		if _, _, err := g.client.Repositories.CreateFile(ctx, req.Owner, req.Repo, "README.md", &github.RepositoryContentFileOptions{
+			Message: &req.Message,
+			Content: req.Content,
 		}); err != nil {
-			fmt.Printf("Error: cannot create file: %v\n", err)
-			os.Exit(3)
+			return fmt.Errorf("cannot create README.md: %w", err)
 		}
-		return
+		return nil
 	}
-	// if file is exist, update it
-	if _, _, err = g.client.Repositories.UpdateFile(ctx, username, repository, "README.md", &github.RepositoryContentFileOptions{
-		Message: &message,
-		Content: []byte(buffer.String()),
+
+	// if file exists, update it
+	if err := g.updateReadme(ctx, req, readmeFile.GetSHA()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (g *GitHub) updateReadme(ctx context.Context, req UpdateRequest, sha string) error {
+	_, _, err := g.client.Repositories.UpdateFile(ctx, req.Owner, req.Repo, "README.md", &github.RepositoryContentFileOptions{
+		Message: &req.Message,
+		Content: req.Content,
+		SHA:     &sha,
+	})
+	if err == nil {
+		return nil
+	}
+	var ghErr *github.ErrorResponse
+	if !errors.As(err, &ghErr) || ghErr.Response == nil || ghErr.Response.StatusCode != http.StatusConflict {
+		return fmt.Errorf("cannot update README.md: %w", err)
+	}
+	// the file changed between read and update: re-read the SHA and retry once
+	readmeFile, _, _, err := g.client.Repositories.GetContents(ctx, req.Owner, req.Repo, "README.md", &github.RepositoryContentGetOptions{})
+	if err != nil {
+		return fmt.Errorf("cannot re-read README.md after conflict: %w", err)
+	}
+	if _, _, err := g.client.Repositories.UpdateFile(ctx, req.Owner, req.Repo, "README.md", &github.RepositoryContentFileOptions{
+		Message: &req.Message,
+		Content: req.Content,
 		SHA:     readmeFile.SHA,
 	}); err != nil {
-		fmt.Printf("Error: cannot update file: %v\n", err)
-		os.Exit(3)
+		return fmt.Errorf("cannot update README.md: %w", err)
 	}
+	return nil
 }
