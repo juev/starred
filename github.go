@@ -10,7 +10,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/google/go-github/v71/github"
+	"github.com/google/go-github/v90/github"
 	"github.com/sourcegraph/conc/pool"
 )
 
@@ -43,12 +43,16 @@ func newHTTPClient() *http.Client {
 }
 
 // New creates new GitHub client
-func New(token string) (client *GitHub) {
-	gh := github.NewClient(newHTTPClient())
+func New(token string) (*GitHub, error) {
+	opts := []github.ClientOptionsFunc{github.WithHTTPClient(newHTTPClient())}
 	if token != "" {
-		gh = gh.WithAuthToken(token)
+		opts = append(opts, github.WithAuthToken(token))
 	}
-	return &GitHub{client: gh}
+	gh, err := github.NewClient(opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &GitHub{client: gh}, nil
 }
 
 // GetRepositories getting repositories from GitHub
