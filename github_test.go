@@ -57,6 +57,13 @@ func TestGetRepositoriesIncludesFirstPage(t *testing.T) {
 	}
 }
 
+func TestNewHTTPClientHasTimeout(t *testing.T) {
+	c := newHTTPClient()
+	if c.Timeout <= 0 {
+		t.Fatalf("http client Timeout = %v, want > 0", c.Timeout)
+	}
+}
+
 func TestGetRepositoriesPreservesLanguageNames(t *testing.T) {
 	oldUsername := username
 	username = "octocat"
