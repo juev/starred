@@ -57,6 +57,50 @@ func TestGetRepositoriesIncludesFirstPage(t *testing.T) {
 	}
 }
 
+func TestGetRepositoriesPreservesLanguageNames(t *testing.T) {
+	oldUsername := username
+	username = "octocat"
+	t.Cleanup(func() { username = oldUsername })
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/octocat/starred", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-RateLimit-Remaining", "100")
+		_, _ = w.Write([]byte(`[
+			{"repo":{"full_name":"a/asp","language":"ASP Classic"}},
+			{"repo":{"full_name":"a/mumps","language":"MUMPS"}},
+			{"repo":{"full_name":"a/vb","language":"Visual Basic .NET"}},
+			{"repo":{"full_name":"a/cpp","language":"C++"}},
+			{"repo":{"full_name":"a/go","language":"Go"}},
+			{"repo":{"full_name":"a/none","language":null}}
+		]`))
+	})
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+
+	client := github.NewClient(server.Client())
+	baseURL, err := url.Parse(server.URL + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	client.BaseURL = baseURL
+
+	langRepoMap, _, err := (&GitHub{client: client}).GetRepositories(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := make([]string, 0, len(langRepoMap))
+	for lang := range langRepoMap {
+		got = append(got, lang)
+	}
+	slices.Sort(got)
+	want := []string{"ASP Classic", "C++", "Go", "MUMPS", "Others", "Visual Basic .NET"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("language names = %v, want %v", got, want)
+	}
+}
+
 func TestGetRepositoriesReturnsErrorWhenInitialRequestFails(t *testing.T) {
 	oldUsername := username
 	username = "octocat"

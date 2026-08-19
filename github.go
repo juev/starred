@@ -12,8 +12,6 @@ import (
 	"github.com/google/go-github/v71/github"
 	"github.com/gregjones/httpcache"
 	"github.com/sourcegraph/conc/pool"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 const (
@@ -108,9 +106,9 @@ func (g *GitHub) GetRepositories(ctx context.Context) (map[string][]Repository, 
 			Description: r.Repository.GetDescription(),
 		}
 		repositories = append(repositories, repo)
-		lang := "Others"
-		if repo.Language != "" {
-			lang = capitalize(repo.Language)
+		lang := repo.Language
+		if lang == "" {
+			lang = "Others"
 		}
 
 		if _, ok := langRepoMap[lang]; !ok {
@@ -186,74 +184,4 @@ func (g *GitHub) UpdateReadmeFile(ctx context.Context) {
 		fmt.Printf("Error: cannot update file: %v\n", err)
 		os.Exit(3)
 	}
-}
-
-var pl = map[string]string{
-	"abcl":               "ABCL",
-	"alf":                "ALF",
-	"algol":              "ALGOL",
-	"apl":                "APL",
-	"applescript":        "AppleScript",
-	"basic":              "BASIC",
-	"beanshell":          "BeanShell",
-	"beta":               "BETA",
-	"chuck":              "ChucK",
-	"cleo":               "CLEO",
-	"clist":              "CLIST",
-	"cobol":              "COBOL",
-	"coldfusion":         "ColdFusion",
-	"css":                "CSS",
-	"dasl":               "DASL",
-	"f-script":           "F-Script",
-	"foxpro":             "FoxPro",
-	"html":               "HTML",
-	"hypertalk":          "HyperTalk",
-	"ici":                "ICI",
-	"io":                 "IO",
-	"jass":               "JASS",
-	"javascript":         "JavaScript",
-	"jovial":             "JOVIAL",
-	"latex":              "LaTeX",
-	"lua":                "LUA",
-	"matlab":             "MATLAB",
-	"ml":                 "ML",
-	"moo":                "MOO",
-	"object-z":           "Object-Z",
-	"objective-c":        "Objective-C",
-	"opal":               "OPAL",
-	"ops5":               "OPS5",
-	"pcastl":             "PCASTL",
-	"php":                "PHP",
-	"pl/c":               "PL/C",
-	"pl/i":               "PL/I",
-	"powershell":         "PowerShell",
-	"rebol":              "REBOL",
-	"rexx":               "REXX",
-	"roop":               "ROOP",
-	"rpg":                "RPG",
-	"s-lang":             "S-Lang",
-	"salsa":              "SALSA",
-	"sass":               "SASS",
-	"scss":               "SCSS",
-	"sgml":               "SGML",
-	"small":              "SMALL",
-	"sr":                 "SR",
-	"tex":                "TeX",
-	"typescript":         "TypeScript",
-	"vbscript":           "VBScript",
-	"viml":               "VimL",
-	"visual foxpro":      "Visual FoxPro",
-	"wikitext":           "WikiText",
-	"windows powershell": "Windows PowerShell",
-	"xhtml":              "XHTML",
-	"xl":                 "XL",
-	"xml":                "XML",
-	"xotcl":              "XOTcl",
-}
-
-func capitalize(in string) string {
-	if lang, ok := pl[cases.Lower(language.English).String(in)]; ok {
-		return lang
-	}
-	return cases.Title(language.English).String(in)
 }
