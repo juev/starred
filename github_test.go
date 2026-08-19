@@ -292,6 +292,57 @@ func TestUpdateReadmeFileRetriesOnceOnConflict(t *testing.T) {
 	}
 }
 
+func TestGetRepositoriesMergesStaleLanguageNames(t *testing.T) {
+	oldUsername := username
+	username = "octocat"
+	t.Cleanup(func() { username = oldUsername })
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/octocat/starred", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-RateLimit-Remaining", "100")
+		_, _ = w.Write([]byte(`[
+			{"repo":{"full_name":"a/old","language":"VimL"}},
+			{"repo":{"full_name":"a/mid","language":"Vim script"}},
+			{"repo":{"full_name":"a/new","language":"Vim Script"}}
+		]`))
+	})
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+
+	client, err := github.NewClient(
+		github.WithHTTPClient(server.Client()),
+		github.WithURLs(&server.URL, &server.URL),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	langRepoMap, _, err := (&GitHub{client: client}).GetRepositories(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repos := langRepoMap["Vim Script"]
+	if len(repos) != 3 {
+		t.Fatalf("Vim Script section has %d repos, want 3 (got map keys %v)", len(repos), mapKeys(langRepoMap))
+	}
+	for _, stale := range []string{"VimL", "Vim script"} {
+		if _, ok := langRepoMap[stale]; ok {
+			t.Errorf("stale language %q must not appear as a separate section", stale)
+		}
+	}
+}
+
+func mapKeys(m map[string][]Repository) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	return keys
+}
+
 func TestGetRepositoriesReturnsErrorWhenInitialRequestFails(t *testing.T) {
 	oldUsername := username
 	username = "octocat"

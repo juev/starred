@@ -114,6 +114,9 @@ func (g *GitHub) GetRepositories(ctx context.Context) (map[string][]Repository, 
 		if lang == "" {
 			lang = "Others"
 		}
+		if alias, ok := langAliases[lang]; ok {
+			lang = alias
+		}
 
 		if _, ok := langRepoMap[lang]; !ok {
 			langRepoMap[lang] = make([]Repository, 0, langReposCount)
@@ -136,6 +139,16 @@ func (g *GitHub) GetRepositories(ctx context.Context) (map[string][]Repository, 
 	}
 
 	return langRepoMap, repositories, nil
+}
+
+// langAliases merges stale language names that the GitHub API still returns
+// for repositories classified before a linguist rename. Entries are added only
+// with evidence: a name returned by the API that is absent from current
+// linguist languages.yml. Verified against juev's starred list on 2026-08-19:
+// every other language matches current linguist verbatim.
+var langAliases = map[string]string{
+	"Vim script": "Vim Script",
+	"VimL":       "Vim Script",
 }
 
 // fetchStarredPage fetches one page of starred repositories. When the remaining
