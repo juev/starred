@@ -78,7 +78,10 @@ func main() {
 
 	ctx := context.Background()
 
-	client := New(token)
+	client, err := New(token)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	langRepoMap, repositories, err := client.GetRepositories(ctx)
 	if err != nil {

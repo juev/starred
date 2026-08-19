@@ -7,14 +7,13 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"slices"
 	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v71/github"
+	"github.com/google/go-github/v90/github"
 )
 
 func TestGetRepositoriesIncludesFirstPage(t *testing.T) {
@@ -41,12 +40,13 @@ func TestGetRepositoriesIncludesFirstPage(t *testing.T) {
 	server = httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 
-	client := github.NewClient(server.Client())
-	baseURL, err := url.Parse(server.URL + "/")
+	client, err := github.NewClient(
+		github.WithHTTPClient(server.Client()),
+		github.WithURLs(&server.URL, &server.URL),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	client.BaseURL = baseURL
 
 	_, repositories, err := (&GitHub{client: client}).GetRepositories(context.Background())
 	if err != nil {
@@ -91,12 +91,13 @@ func TestGetRepositoriesPreservesLanguageNames(t *testing.T) {
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 
-	client := github.NewClient(server.Client())
-	baseURL, err := url.Parse(server.URL + "/")
+	client, err := github.NewClient(
+		github.WithHTTPClient(server.Client()),
+		github.WithURLs(&server.URL, &server.URL),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	client.BaseURL = baseURL
 
 	langRepoMap, _, err := (&GitHub{client: client}).GetRepositories(context.Background())
 	if err != nil {
@@ -138,12 +139,13 @@ func TestGetRepositoriesWaitsForRateLimitReset(t *testing.T) {
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 
-	client := github.NewClient(server.Client())
-	baseURL, err := url.Parse(server.URL + "/")
+	client, err := github.NewClient(
+		github.WithHTTPClient(server.Client()),
+		github.WithURLs(&server.URL, &server.URL),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	client.BaseURL = baseURL
 
 	_, repositories, err := (&GitHub{client: client}).GetRepositories(context.Background())
 	if err != nil {
@@ -161,12 +163,13 @@ func githubClientForMux(t *testing.T, mux *http.ServeMux) *GitHub {
 	t.Helper()
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
-	client := github.NewClient(server.Client())
-	baseURL, err := url.Parse(server.URL + "/")
+	client, err := github.NewClient(
+		github.WithHTTPClient(server.Client()),
+		github.WithURLs(&server.URL, &server.URL),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	client.BaseURL = baseURL
 	return &GitHub{client: client}
 }
 
@@ -294,8 +297,11 @@ func TestGetRepositoriesReturnsErrorWhenInitialRequestFails(t *testing.T) {
 	username = "octocat"
 	t.Cleanup(func() { username = oldUsername })
 
-	client := github.NewClient(nil)
-	client.BaseURL.Path = ""
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/octocat/starred", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`not json`))
+	})
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -303,7 +309,7 @@ func TestGetRepositoriesReturnsErrorWhenInitialRequestFails(t *testing.T) {
 		}
 	}()
 
-	_, _, err := (&GitHub{client: client}).GetRepositories(context.Background())
+	_, _, err := githubClientForMux(t, mux).GetRepositories(context.Background())
 	if err == nil {
 		t.Fatal("expected error")
 	}
