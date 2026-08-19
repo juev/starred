@@ -89,11 +89,11 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	var funcMap = template.FuncMap{
-		"toLink": func(lang string) string { return strings.ToLower(strings.ReplaceAll(lang, " ", "-")) },
+	temp, err := parseTemplate(content)
+	if err != nil {
+		fmt.Printf("Error: template parse failed: %s\n", err)
+		os.Exit(1)
 	}
-
-	temp := template.Must(template.New("starred").Funcs(funcMap).Parse(string(content)))
 
 	r := struct {
 		SortCmd      bool
@@ -117,6 +117,14 @@ func main() {
 		return
 	}
 	client.UpdateReadmeFile(ctx)
+}
+
+// parseTemplate parses the output template with the built-in function map.
+func parseTemplate(content []byte) (*template.Template, error) {
+	funcMap := template.FuncMap{
+		"toLink": func(lang string) string { return strings.ToLower(strings.ReplaceAll(lang, " ", "-")) },
+	}
+	return template.New("starred").Funcs(funcMap).Parse(string(content))
 }
 
 func usage() {
