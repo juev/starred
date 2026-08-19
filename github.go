@@ -65,15 +65,9 @@ func (g *GitHub) GetRepositories(ctx context.Context) (map[string][]Repository, 
 		}
 	}
 
-	repos, resp, err := g.client.Activity.ListStarred(ctx, username, opt(1))
+	repos, resp, err := g.fetchStarredPage(ctx, username, opt(1))
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot fetch starred: %w", err)
-	}
-	if resp == nil {
-		return nil, nil, fmt.Errorf("cannot fetch starred: empty response")
-	}
-	if resp.Rate.Remaining < 10 {
-		return nil, nil, fmt.Errorf("rate limit exceeded")
 	}
 
 	// https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api?apiVersion=2022-11-28
@@ -88,7 +82,7 @@ func (g *GitHub) GetRepositories(ctx context.Context) (map[string][]Repository, 
 	for i := 2; i <= resp.LastPage; i++ {
 		page := i
 		p.Go(func(ctx context.Context) ([]*github.StarredRepository, error) {
-			githubRepos, err := g.getStarredRepositories(ctx, username, opt(page))
+			githubRepos, _, err := g.fetchStarredPage(ctx, username, opt(page))
 			if err != nil {
 				return nil, err
 			}
@@ -140,26 +134,43 @@ func (g *GitHub) GetRepositories(ctx context.Context) (map[string][]Repository, 
 	return langRepoMap, repositories, nil
 }
 
-func (g *GitHub) getStarredRepositories(
+// fetchStarredPage fetches one page of starred repositories. When the remaining
+// rate limit quota is nearly exhausted, it waits for the limit to reset and
+// retries the page instead of failing. The response of the successful fetch is
+// returned so callers can read pagination info.
+func (g *GitHub) fetchStarredPage(
 	ctx context.Context,
 	username string,
-	opts *github.ActivityListStarredOptions) ([]*github.StarredRepository, error) {
+	opts *github.ActivityListStarredOptions) ([]*github.StarredRepository, *github.Response, error) {
 	for {
 		repos, resp, err := g.client.Activity.ListStarred(ctx, username, opts)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if resp == nil {
-			return nil, fmt.Errorf("cannot fetch starred: empty response")
+			return nil, nil, fmt.Errorf("cannot fetch starred: empty response")
 		}
 		if resp.Rate.Remaining < 10 {
-			if sleepDuration := time.Until(resp.Rate.Reset.Time); sleepDuration > 0 {
-				log.Default().Printf("Rate limit exceeded, sleeping for %s", sleepDuration)
-				time.Sleep(sleepDuration)
+			if wait := time.Until(resp.Rate.Reset.Time); wait > 0 {
+				log.Default().Printf("rate limit nearly exhausted, waiting %s until reset", wait.Truncate(time.Second))
+				if err := sleepContext(ctx, wait); err != nil {
+					return nil, nil, err
+				}
 				continue
 			}
 		}
-		return repos, nil
+		return repos, resp, nil
+	}
+}
+
+func sleepContext(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
 	}
 }
 
