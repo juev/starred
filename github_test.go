@@ -6,7 +6,10 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"slices"
+	"strconv"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/go-github/v71/github"
 )
@@ -105,6 +108,49 @@ func TestGetRepositoriesPreservesLanguageNames(t *testing.T) {
 	want := []string{"ASP Classic", "C++", "Go", "MUMPS", "Others", "Visual Basic .NET"}
 	if !slices.Equal(got, want) {
 		t.Fatalf("language names = %v, want %v", got, want)
+	}
+}
+
+func TestGetRepositoriesWaitsForRateLimitReset(t *testing.T) {
+	oldUsername := username
+	username = "octocat"
+	t.Cleanup(func() { username = oldUsername })
+
+	var requests int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("/users/octocat/starred", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-RateLimit-Limit", "5000")
+		body := `[{"repo":{"full_name":"owner/first","html_url":"https://github.com/owner/first","language":"Go","description":"first"}}]`
+		if atomic.AddInt32(&requests, 1) == 1 {
+			// first call: quota nearly exhausted, resets in a second
+			w.Header().Set("X-RateLimit-Remaining", "5")
+			w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Add(time.Second).Unix(), 10))
+		} else {
+			w.Header().Set("X-RateLimit-Remaining", "5000")
+			w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10))
+		}
+		_, _ = w.Write([]byte(body))
+	})
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+
+	client := github.NewClient(server.Client())
+	baseURL, err := url.Parse(server.URL + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	client.BaseURL = baseURL
+
+	_, repositories, err := (&GitHub{client: client}).GetRepositories(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(repositories) != 1 || repositories[0].FullName != "owner/first" {
+		t.Fatalf("repositories = %v, want one owner/first", repositories)
+	}
+	if got := atomic.LoadInt32(&requests); got != 2 {
+		t.Fatalf("requests = %d, want 2 (initial + retry after wait)", got)
 	}
 }
 
