@@ -50,11 +50,7 @@ func configure() {
 	}
 
 	if versionCmd {
-		versionStr := "starred version: dev\n"
-		if version != "" {
-			versionStr = fmt.Sprintf("starred version: %s (%s) / builded %s\n", version, commit[:6], date)
-		}
-		fmt.Println(versionStr)
+		fmt.Print(buildVersionString(version, commit, date))
 		os.Exit(0)
 	}
 
@@ -117,6 +113,18 @@ func main() {
 		return
 	}
 	client.UpdateReadmeFile(ctx)
+}
+
+// buildVersionString renders the --version output. commit is truncated to six
+// characters; anything shorter is kept as-is.
+func buildVersionString(version, commit, date string) string {
+	if version == "" {
+		return "starred version: dev\n"
+	}
+	if len(commit) > 6 {
+		commit = commit[:6]
+	}
+	return fmt.Sprintf("starred version: %s (%s) / built %s\n", version, commit, date)
 }
 
 // parseTemplate parses the output template with the built-in function map.
